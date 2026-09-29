@@ -1,0 +1,32 @@
+# --- API ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.0
+python-multipart==0.0.20
+
+# --- Persistence ---
+SQLAlchemy==2.0.36
+
+# --- OAuth token encryption at rest (PRD 12) ---
+cryptography>=44.0.0
+
+# --- Media intake ---
+yt-dlp==2026.8.19
+
+# --- Transcription ---
+faster-whisper==1.1.0
+
+# --- Face detection for smart vertical reframing ---
+# Headless build: no GUI/X11 deps, which matters for a server and an AppImage.
+opencv-python-headless>=4.10.0
+
+# --- AI highlight model (OpenAI-compatible client) ---
+openai==1.59.6
+httpx==0.28.1
+
+# faster-whisper 1.1.0 imports `requests` but huggingface-hub 1.x no longer pulls it in
+requests==2.32.3
+
+# --- Tests ---
+pytest==8.3.4

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=CLIPZ
+GenericName=Short-form video clipper
+Comment=Turn long-form video into ranked, captioned vertical clips
+Exec=clipz
+Icon=clipz
+Categories=AudioVideo;Video;AudioVideoEditing;
+Keywords=video;clips;shorts;tiktok;reels;subtitles;captions;
+Terminal=false
+StartupNotify=true

@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLIPZ</title>
+<link rel="stylesheet" href="/static/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9986;</text></svg>">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"></span>
+    <div>
+      <h1>CLIPZ</h1>
+      <p>Long-form video in, ranked vertical clips out.</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="account-strip" id="account-strip" hidden></div>
+    <div class="health" id="health" aria-live="polite"></div>
+    <button type="button" class="settings-btn" id="settings-btn" aria-haspopup="dialog">
+      <span aria-hidden="true">&#9881;</span> Settings
+    </button>
+    <button type="button" class="settings-btn quit-btn" id="quit-btn" hidden>
+      <span aria-hidden="true">&#9211;</span> Quit
+    </button>
+  </div>
+</header>
+
+<dialog id="auth-dialog" class="settings-dialog auth-dialog" aria-labelledby="auth-heading">
+  <form class="settings-form" id="auth-form">
+    <div class="settings-head">
+      <h2 id="auth-heading">API token</h2>
+    </div>
+    <p class="muted settings-intro">
+      This server is protected. Enter the token from its <code>API_TOKEN</code>
+      setting to continue; it is remembered on this device.
+    </p>
+    <label class="field">
+      <span>Token</span>
+      <input type="password" id="auth-token" autocomplete="current-password" spellcheck="false">
+    </label>
+    <p class="settings-status" id="auth-status" aria-live="polite"></p>
+    <div class="settings-actions">
+      <button type="submit" class="button primary">Unlock</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-heading">
+  <form method="dialog" class="settings-form" id="settings-form">
+    <div class="settings-head">
+      <h2 id="settings-heading">AI model</h2>
+      <button type="button" class="icon-btn" id="settings-close" aria-label="Close settings">&#10005;</button>
+    </div>
+
+    <p class="muted settings-intro">
+      Any endpoint that speaks the OpenAI chat-completions protocol. The key is
+      stored on this machine in <code>storage/runtime_config.json</code> and is
+      never sent back to this page.
+    </p>
+
+    <label class="field">
+      <span>Provider preset</span>
+      <select id="settings-preset"></select>
+    </label>
+
+    <label class="field">
+      <span>API key</span>
+      <input type="password" id="settings-key" autocomplete="off" spellcheck="false"
+             placeholder="sk-...">
+    </label>
+    <p class="field-note muted" id="key-state"></p>
+
+    <div class="field-row">
+      <label class="field">
+        <span>Base URL</span>
+        <input type="url" id="settings-base-url" autocomplete="off" spellcheck="false"
+               placeholder="https://api.ox.ai/v1">
+      </label>
+      <label class="field">
+        <span>Model</span>
+        <input type="text" id="settings-model" autocomplete="off" spellcheck="false"
+               placeholder="ox-alpha">
+      </label>
+    </div>
+
+    <label class="checkbox">
+      <input type="checkbox" id="settings-heuristic">
+      <span>Use offline heuristic selection instead of a model</span>
+    </label>
+
+    <hr class="rule">
+
+    <div class="settings-head">
+      <h2 id="accounts-heading">TikTok accounts</h2>
+      <button type="button" class="button" id="connect-tiktok">Connect account</button>
+    </div>
+    <p class="muted settings-intro" id="accounts-note">
+      Clips post to every connected account at once.
+    </p>
+    <ul class="account-list" id="account-list"></ul>
+    <p class="field-note muted">
+      TikTok connects whichever account is logged in at tiktok.com. To add
+      another account, log out there first (or connect from an incognito
+      window), then click Connect again — repeat per account.
+    </p>
+
+    <hr class="rule">
+
+    <div class="settings-head">
+      <h2 id="publishing-heading">Publishing</h2>
+    </div>
+    <p class="muted settings-intro">
+      With auto-post on, a finished job posts every rendered clip to all
+      connected TikTok accounts the moment rendering completes. Unaudited
+      TikTok apps can only post <code>SELF_ONLY</code> and are limited to a
+      handful of posts per account per day.
+    </p>
+    <label class="checkbox">
+      <input type="checkbox" id="settings-auto-publish">
+      <span>Post finished jobs to TikTok automatically</span>
+    </label>
+    <label class="field">
+      <span>Privacy level</span>
+      <select id="settings-privacy">
+        <option value="PUBLIC_TO_EVERYONE">Public</option>
+        <option value="MUTUAL_FOLLOW_FRIENDS">Mutual follow friends</option>
+        <option value="FOLLOWER_OF_CREATOR">Followers of this account</option>
+        <option value="SELF_ONLY">Only me</option>
+      </select>
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" id="settings-draft">
+      <span>Upload to TikTok drafts instead of posting directly</span>
+    </label>
+    <p class="field-note muted" id="draft-note" hidden>
+      Drafts land in each account's TikTok app, ready to post with one tap and
+      any privacy -- the mode that works before your app is audited.
+    </p>
+    <p class="field-note muted" id="publishing-state"></p>
+
+    <p class="settings-status" id="settings-status" aria-live="polite"></p>
+
+    <div class="settings-actions">
+      <button type="button" class="button" id="settings-test">Test connection</button>
+      <button type="button" class="button primary" id="settings-save">Save</button>
+      <button type="button" class="button danger" id="settings-clear">Clear</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="confirm-dialog" class="settings-dialog confirm-dialog" aria-labelledby="confirm-message">
+  <form method="dialog" class="settings-form">
+    <p class="confirm-message" id="confirm-message"></p>
+    <div class="settings-actions">
+      <button type="submit" value="cancel" class="button">Cancel</button>
+      <button type="submit" value="ok" class="button danger" id="confirm-ok">Confirm</button>
+    </div>
+  </form>
+</dialog>
+
+<main>
+  <section class="panel intake" aria-labelledby="intake-heading">
+    <h2 id="intake-heading">New job</h2>
+    <form id="job-form">
+      <label class="field url-field">
+        <span>Video URL <small>one per line to queue several at once</small></span>
+        <textarea id="url" name="url" required rows="2" autocomplete="off"
+                  placeholder="https://www.youtube.com/watch?v=...&#10;https://www.youtube.com/watch?v=..."></textarea>
+      </label>
+      <ul class="batch-results" id="batch-results" hidden></ul>
+
+      <div class="field-row">
+        <label class="field">
+          <span>Clips</span>
+          <input type="number" id="clip_count" name="clip_count" value="5" min="1" max="20">
+        </label>
+        <label class="field">
+          <span>Max duration <small>seconds</small></span>
+          <input type="number" id="max_duration" name="max_duration" value="60" min="15" max="90" step="5">
+        </label>
+        <label class="field">
+          <span>Caption style</span>
+          <select id="caption_style" name="caption_style"></select>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="primary" id="submit-btn"><span aria-hidden="true">✂</span> Generate clips</button>
+        <span class="chip ok auto-chip" id="auto-publish-chip" hidden
+              title="Finished jobs post their clips to TikTok automatically">Auto-post on</span>
+        <span class="hint" id="form-hint">YouTube URLs are supported in this release.</span>
+      </div>
+      <p class="error" id="form-error" hidden></p>
+    </form>
+  </section>
+
+  <section class="panel progress-panel" id="progress-panel" hidden aria-live="polite">
+    <div class="progress-head">
+      <div>
+        <h2 id="progress-title">Processing</h2>
+        <p class="muted" id="progress-source"></p>
+      </div>
+      <div class="progress-head-right">
+        <span class="badge" id="status-badge">QUEUED</span>
+        <button type="button" class="button danger" id="cancel-btn" hidden>Cancel</button>
+        <button type="button" class="button" id="retry-btn" hidden>Run again</button>
+      </div>
+    </div>
+    <div class="bar"><div class="bar-fill" id="bar-fill" style="width:0%"></div></div>
+    <div class="progress-line">
+      <p class="progress-message" id="progress-message">Queued</p>
+      <p class="progress-eta muted" id="progress-eta"></p>
+    </div>
+    <ol class="stages" id="stages"></ol>
+    <p class="error" id="job-error" hidden></p>
+  </section>
+
+  <section class="panel clips-panel" id="clips-panel" hidden>
+    <div class="clips-head">
+      <h2>Clips</h2>
+      <div class="clips-head-right">
+        <span class="muted" id="clips-count"></span>
+        <button type="button" class="button primary" id="post-all-btn" hidden>Post all to TikTok</button>
+      </div>
+    </div>
+    <p class="publish-summary" id="publish-summary" hidden></p>
+    <div class="clip-grid" id="clip-grid"></div>
+  </section>
+
+  <section class="panel history" id="history-panel" hidden>
+    <h2>Recent jobs</h2>
+    <ul class="job-list" id="job-list"></ul>
+  </section>
+</main>
+
+<template id="clip-template">
+  <article class="clip">
+    <div class="clip-video">
+      <video controls preload="metadata" playsinline></video>
+      <span class="rank"></span>
+      <span class="clip-duration"></span>
+      <div class="pub-badges"></div>
+    </div>
+    <div class="clip-body">
+      <h3 class="clip-name"></h3>
+      <div class="score-row">
+        <div class="score-ring" role="img" aria-label="Final score">
+          <strong class="final-score"></strong>
+        </div>
+        <div class="score-side">
+          <button type="button" class="link why-btn" aria-expanded="false">Why this clip?</button>
+          <p class="timing muted"></p>
+        </div>
+      </div>
+      <dl class="breakdown" hidden></dl>
+
+      <details class="meta-edit">
+        <summary>Edit metadata</summary>
+        <div class="meta-fields">
+          <label class="field"><span>Title</span><input type="text" class="clip-title" maxlength="120"></label>
+          <label class="field"><span>Hook</span><input type="text" class="clip-hook" maxlength="200"></label>
+          <label class="field"><span>Description</span><textarea class="clip-description" rows="3" maxlength="600"></textarea></label>
+          <label class="field"><span>Hashtags</span><input type="text" class="clip-hashtags" placeholder="#podcast #mindset"></label>
+        </div>
+      </details>
+
+      <details class="transcript"><summary>Transcript</summary><p class="transcript-text"></p></details>
+
+      <div class="clip-actions">
+        <a class="button primary download" download>Download MP4</a>
+        <button type="button" class="button post">Post</button>
+        <button type="button" class="button save">Save edits</button>
+        <span class="save-state" aria-live="polite"></span>
+      </div>
+    </div>
+  </article>
+</template>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
